@@ -132,6 +132,13 @@ const getTraverse = (input: any): typeof babelTraverse.default => {
   }
 };
 
+const isNotNamedExport = (root: any) => {
+  const [identifier] = root.data?.estree?.body ?? [];
+  return identifier?.type !== 'ExportNamedDeclaration';
+};
+
+const isImportCandidate = (root: any) => root.type === 'mdxjsEsm' && isNotNamedExport(root);
+
 export const extractImports = (root: t.File) => {
   const varToImport = {} as Record<string, string>;
   getTraverse(babelTraverse)(root, {
@@ -152,8 +159,7 @@ export const extractImports = (root: t.File) => {
 };
 
 export const plugin = (store: any) => (root: any) => {
-  const esmBlocks: any[] = root.children.filter((child: any) => child.type === 'mdxjsEsm');
-
+  const esmBlocks: any[] = root.children.filter((child: any) => isImportCandidate(child));
   const varToImport = esmBlocks.reduce((acc, block) => {
     const imports = extractImports(toBabel(block.data.estree));
     return { ...acc, ...imports };
